@@ -20,7 +20,7 @@ const ipfs = new IPFS({
 });
 // const ipfs = ipfsClient('/ip4/192.168.99.101/tcp/9095');	// IPFS Cluster proxy
 var web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:7545'));	// Ganache test blockchain endpoint
-web3.eth.defaultAccount = web3.eth.accounts[0];
+// web3.eth.defaultAccount = web3.eth.accounts[0];
 
 const DataRepo = contract(DataStoreContract);
 DataRepo.setProvider(web3.currentProvider);
@@ -101,8 +101,9 @@ router.post('/add', function (req, res1) {	// TODO: change to POST!
 		// console.log('Jiihaa!');
 		let bytesFromHash = hashUtils.bytesFromHash(hash);
 
-		contract1.save(bytesFromHash, { from: web3.eth.defaultAccount }).then((txHash) => {
-			db.put({ _id: hash, ethHash: txHash, foo: "Klingon" }).then((value) => {
+		contract1.save(bytesFromHash, { from: "0xcb2635c3269C45915c756E808054eEeAE927b75A" }).then((tx) => {
+			let hashId = tx.logs[0].args._hashId.toNumber();
+			db.put({ _id: hash, ethId: hashId, foo: "Klingon" }).then((value) => {
 				res1.send(value);
 			});
 		});
