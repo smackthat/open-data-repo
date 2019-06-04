@@ -1,0 +1,28 @@
+{
+  "name": "testipfseth",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon --harmony -r esm server/index.js",
+    "debuggy": "nodemon --harmony -r esm --inspect server/index.js"
+  },
+  "author": "Johannes Stenberg",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "bs58": "^4.0.1",
+    "express": "^4.16.4",
+    "ipfs-http-client": "^29.1.0",
+    "npm": "^6.8.0",
+    "orbit-db": "github:BartKnucle/orbit-db#windows",
+    "truffle-contract": "^4.0.17"
+  },
+  "devDependencies": {
+    "esm": "^3.2.25",
+    "ipfs": "^0.35.0",
+    "nodemon": "^1.19.0",
+    "web3": "^1.0.0-beta.37"
+  }
+}
