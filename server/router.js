@@ -79,7 +79,7 @@ async function init() {
 
 // API
 
-router.post('/add', function (req, res1) {	// TODO: change to POST!
+router.post('/add', function (req, res1) {
 
 	// Tiedosto tulee muodossa { file: Buffer, lähettäjä: string, sposti: string}
 
@@ -91,8 +91,8 @@ router.post('/add', function (req, res1) {	// TODO: change to POST!
 
 	var data = req.body;
 
-	ipfs.add([Buffer.from(JSON.stringify(argh))], function (err, res) {
-		if (err) throw err;
+	ipfs.add([Buffer.from(JSON.stringify(data))], function (err, res) {
+		if (err) res1.status(500).send(err);
 		console.log('Tallennettu: ', res[0]);
 
 		let hash = res[0].hash;
@@ -103,8 +103,8 @@ router.post('/add', function (req, res1) {	// TODO: change to POST!
 
 		contract1.save(bytesFromHash, { from: "0xcb2635c3269C45915c756E808054eEeAE927b75A" }).then((tx) => {
 			let hashId = tx.logs[0].args._hashId.toNumber();
-			db.put({ _id: hash, ethId: hashId, foo: "Klingon" }).then((value) => {
-				res1.send(value);
+			db.put({ _id: hash, ethId: hashId, category: "Weather", link: "foo" }).then((value) => {
+				res1.status(200).send(value);
 			});
 		});
 
@@ -130,16 +130,35 @@ router.get('/file/:id', (req, res) => {
 	// req.params.id
 	let id = req.params.id;
 
-	ipfs.cat(id, (err, file) => {	// TODO: orbitdb
-		if (err) throw err;
+	const file = db.get(id)[0];
 
-		res.send(file);
+	res.status(200).send(file);
+
+	// ipfs.cat(id, (err, file) => {	// TODO: orbitdb
+	// 	if (err) throw err;
+
+	// 	res.status(200).send(file);
+	// });
+});
+
+router.get('/file/origin/:ethId', (req, res) => {
+	let foo = req.params.ethId;
+
+	contract1.find(foo).then((data) => {
+		console.log('Data: ', data);
+
+		if (data[0] === "0x0000000000000000000000000000000000000000" || !data.hashContent) {
+			res.status(500).send("No entry found!");
+		}
+
+		let hash = hashUtils.hashFromBytes(data.hashContent);
+		res.status(200).send(hash);
 	});
 });
 
-router.get('/peers', (reg, res) => {
+router.get('/peers', (req, res) => {
 	ipfs.swarm.peers((err, peerss) => {
-		if (err) throw err;
+		if (err) res.status(500).send(err);
 		console.log(peerss);
 		res.send(peerss);
 	});

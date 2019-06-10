@@ -38,12 +38,8 @@ contract DataRepo {
   * @dev find hash by id
   * @param _hashId Hash Id
   */
-  function find(uint _hashId) public returns (address hashSender, bytes32 hashContent, uint hashTimestamp) {
+  function find(uint _hashId) public view returns (address hashSender, bytes32 hashContent, uint hashTimestamp) {
     return (hashes[_hashId].sender, hashes[_hashId].contentHash, hashes[_hashId].timestamp);
-  }
-
-  function checkHash() public {
-
   }
 
 }
