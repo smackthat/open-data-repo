@@ -1,8 +1,12 @@
+'use strict';
+
 // Express.js
 const express = require('express');
 const bodyParser = require('body-parser');
-const router = express.Router();
+export const router = express.Router();
 
+const formidable = require('formidable');
+const fs = require('fs');
 const hashUtils = require('./convertHash');
 const Struct = require('./struct');
 
@@ -14,14 +18,14 @@ const DataStoreContract = require('../build/contracts/DataRepo.json');
 const contract = require('truffle-contract');
 
 // EITHER JS OR HTTP - CHOOSE
-// const IPFS = require('ipfs');
-// const ipfs = new IPFS({
-// 	EXPERIMENTAL: {
-// 		pubsub: true
-// 	}
-// });
-const ipfs = ipfsClient('/ip4/192.168.99.101/tcp/9095');	// IPFS Cluster proxy -- for adding
-const cluster = ipfsCluster('/ip4/192.168.99.101/tcp/9094');
+const IPFS = require('ipfs');
+const ipfs = new IPFS({
+	EXPERIMENTAL: {
+		pubsub: true
+	}
+});
+// const ipfs = ipfsClient('/ip4/192.168.99.101/tcp/9095');	// IPFS Cluster proxy -- for adding
+// const cluster = ipfsCluster('/ip4/192.168.99.101/tcp/9094');
 var web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:7545'));	// Ganache test blockchain endpoint
 // web3.eth.defaultAccount = web3.eth.accounts[0];
 
@@ -34,39 +38,39 @@ var db;	// OrbitDB instance
 
 // Initiliaze orbitdb and data store contract
 
-async function init() {
+export async function init2() {
 	console.log("Boomka! Dread lion!");
 	// console.log('Web3: ', web3);
 	// console.log(ipfs);
 	try {
-		// ipfs.on('ready', async () => {
-		orbitdb = await OrbitDB.createInstance(ipfs);
+		ipfs.on('ready', async () => {
+			orbitdb = await OrbitDB.createInstance(ipfs);
 
-		const dbConfig = {
-			admin: ['*'],
-			write: ['*'],
-			indexBy: 'hash'
-		}
-		db = await orbitdb.docs('aardvarkki');
-		await db.load();
+			const dbConfig = {
+				admin: ['*'],
+				write: ['*'],
+				indexBy: 'name'
+			}
+			db = await orbitdb.docs('aardvarkki');
+			await db.load();
 
-		// contract1 = contract(DataStoreContract);
-		// // console.log(web3.currentProvider);
-		// contract1.setProvider(web3.currentProvider);
+			// contract1 = contract(DataStoreContract);
+			// // console.log(web3.currentProvider);
+			// contract1.setProvider(web3.currentProvider);
 
-		// contract1.deployed().then((instance) => {
-		// 	console.log('Instance: ', instance);
-		// });
-		try {
-			contract1 = await DataRepo.deployed();
+			// contract1.deployed().then((instance) => {
+			// 	console.log('Instance: ', instance);
+			// });
+			try {
+				contract1 = await DataRepo.deployed();
 
-			console.log("Hurraa!");
-		} catch (e) {
-			console.log(e);
-		}
+				console.log("Hurraa!");
+			} catch (e) {
+				console.log(e);
+			}
 
 
-		// });
+		});
 
 	} catch (e) {
 		console.log(e);
@@ -82,38 +86,48 @@ async function init() {
 
 // API
 
-router.post('/add', function (req, res1) {
+router.post('/file/add', function (req, res1) {
 
 	var timeStart = process.hrtime();
 
+	var form = new formidable.IncomingForm();
+	form.parse(req, (err, fields, files) => {
+		var a = err;
+		var b = fields;
+		var c = files;
+
+		if (err) res1.status(500).send(err);
+
+		var fileBuffer = fs.readFileSync(files.File.path);
+
+		ipfs.add(fileBuffer, function (err, res) {
+			if (err) res1.status(500).send(err);
+			// console.log('Tallennettu: ', res[0]);
+
+			let hash = res[0].hash;
+			let bytesFromHash = hashUtils.bytesFromHash(hash);
+
+			contract1.save(bytesFromHash, { from: "0xcb2635c3269C45915c756E808054eEeAE927b75A" }).then((tx) => {
+				let hashId = tx.logs[0].args._hashId.toNumber();
+
+				// var foo = new Struct(hash, hashId, data.name, Date.now(), data.categories, data.links);
+				db.put({ _id: fields.name, ethId: hashId, hash: hash, categories: fields.categories }).then((value) => {
+					res1.status(200).send(value);
+
+					console.log('Time: %ds', process.hrtime(timeStart)[0]);
+				});
+			});
+
+		});
+	});
+
 	// Tiedosto tulee muodossa {file: string (base64), name: string, categories: [], links: [] }
 
-	var data = req.body;
+	// var data = req.body;
 
-	ipfs.add([Buffer.from(JSON.stringify(data))], function (err, res) {
-		if (err) res1.status(500).send(err);
-		// console.log('Tallennettu: ', res[0]);
+});
 
-		let hash = res[0].hash;
-		let bytesFromHash = hashUtils.bytesFromHash(hash);
-
-		contract1.save(bytesFromHash, { from: "0xcb2635c3269C45915c756E808054eEeAE927b75A" }).then((tx) => {
-			let hashId = tx.logs[0].args._hashId.toNumber();
-
-			// var foo = new Struct(hash, hashId, data.name, Date.now(), data.categories, data.links);
-			db.put({ _id: hash, ethId: hashId, name: data.name, categories: data.categories, links: data.links }).then((value) => {
-				res1.status(200).send(value);
-
-				console.log('Time: %ds', process.hrtime(timeStart)[0]);
-			});
-		});
-
-
-		// });
-
-		// res1.send(hash);
-
-	});
+router.patch('/file/:id', (req, res) => {
 
 });
 
@@ -126,6 +140,7 @@ router.get('/list', (req, res) => {
 });
 
 router.get('/file/:id', (req, res) => {
+	var timeStart = process.hrtime();
 	// TODO: tietyn filun haku
 	// req.params.id
 	let id = req.params.id;
@@ -133,6 +148,7 @@ router.get('/file/:id', (req, res) => {
 	const file = db.get(id)[0];
 
 	res.status(200).send(file);
+	console.log('Time: %ds', process.hrtime(timeStart)[0]);
 
 	// ipfs.cat(id, (err, file) => {	// TODO: orbitdb
 	// 	if (err) throw err;
@@ -142,6 +158,7 @@ router.get('/file/:id', (req, res) => {
 });
 
 router.get('/file/origin/:ethId', (req, res) => {
+	var timeStart = process.hrtime();
 	let foo = req.params.ethId;
 
 	contract1.find(foo).then((data) => {
@@ -152,10 +169,12 @@ router.get('/file/origin/:ethId', (req, res) => {
 		}
 
 		let hash = hashUtils.hashFromBytes(data.hashContent);
-		let timeStamp = new Date(data.timestamp);
-		let address = data.sender;
+		let timeStamp = new Date(data.hashTimestamp);
+		let address = data.hashSender;
 		let dat = { ipfsHash: hash, times: timeStamp, sender: address };
 		res.status(200).send(JSON.stringify(dat));
+
+		console.log('Time: %ds', process.hrtime(timeStart)[0]);
 	});
 });
 
@@ -200,7 +219,8 @@ router.get('/cpins', (req, res) => {
 
 
 
-module.exports = { router: router, init: init };
+// export const router = router;
+// export const init2 = init2;
 
 
 

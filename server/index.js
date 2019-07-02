@@ -11,5 +11,5 @@ app.use('/router', router.router);
 
 app.listen(3000, async () => {
     console.log('Listening on port 3000!');
-    await router.init();
+    await router.init2();
 });
