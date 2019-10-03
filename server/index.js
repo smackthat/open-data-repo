@@ -5,8 +5,8 @@ const router = require('./router.js');
 const app = express();
 
 // parse application/x-www-form-urlencoded
-app.use(bodyParser.urlencoded({ extended: false }))
-app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: true }));
+// app.use(bodyParser.json());
 app.use('/router', router.router);
 
 app.listen(3000, async () => {
