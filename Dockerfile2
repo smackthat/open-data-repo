@@ -1,0 +1,6 @@
+FROM ipfs/go-ipfs:release
+MAINTAINER Johannes Stenberg <jstenberg86@gmail.com>
+
+RUN ipfs init && ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001 && ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
+&& ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin '["http://localhost"]' && ipfs config --json API.HTTPHeaders.Access-Control-Allow-Methods '["PUT", "GET", "POST"]'
+&& ipfs daemon
