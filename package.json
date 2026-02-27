@@ -17,13 +17,13 @@
     "formidable": "^1.2.1",
     "ipfs-cluster-api": "0.0.9",
     "ipfs-http-client": "^29.1.0",
-    "npm": "^6.8.0",
+    "npm": "^11.9.0",
     "orbit-db": "github:BartKnucle/orbit-db#windows",
     "truffle-contract": "^4.0.17"
   },
   "devDependencies": {
     "esm": "^3.2.25",
-    "ipfs": "^0.35.0",
+    "ipfs": "^0.66.1",
     "nodemon": "^1.19.0",
     "web3": "^1.0.0-beta.37"
   }
